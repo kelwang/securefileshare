@@ -9,9 +9,9 @@ import (
 )
 
 func main() {
-	rootPathFlag := flag.String("p", "", "root path will the folder where your docs located to download")
-	secretFlag := flag.String("s", "", "secret string used for encryption")
-	passFlag := flag.String("c", "", "passcode for your client to gain access")
+	rootPathFlag := flag.String("path", "", "root path will the folder where your docs located to download")
+	secretFlag := flag.String("secret", "", "secret string used for encryption")
+	passFlag := flag.String("code", "", "passcode for your client to gain access")
 
 	flag.Parse()
 	rootPath := *rootPathFlag
@@ -25,6 +25,7 @@ func main() {
 	if passCode == "" {
 		log.Fatal("pass code can't be empty")
 	}
+	println("secure file share server is started")
 
 	http.Handle("/", handler.New(rootPath, secret, passCode))
 	http.ListenAndServe(":8080", nil)
