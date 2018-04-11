@@ -6,10 +6,12 @@ import (
 	"html/template"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"runtime/debug"
 	"strings"
+	"time"
 
 	"github.com/kelwang/securefileshare/ui"
 )
@@ -23,6 +25,7 @@ func New(rootPath, secret, passCode string) http.Handler {
 		secret:   []byte(secret),
 		passCode: passCode,
 		tried:    0,
+		session:  make(map[string]int64),
 	}
 }
 
@@ -31,6 +34,7 @@ type handler struct {
 	secret   []byte
 	passCode string
 	tried    int
+	session  map[string]int64
 }
 
 // ServeHTTP will implement the net http.Handler interface
@@ -115,6 +119,7 @@ func (h *handler) authRequest(w http.ResponseWriter, r *http.Request) bool {
 		return false
 	}
 	if code == h.passCode {
+		//set auth cookie
 		return true
 	}
 	if h.tried+1 == maxRetry {
@@ -140,4 +145,18 @@ func getFiles(dir string) (files []string, err error) {
 		}
 	}
 	return
+}
+
+func (h *handler) setAuthCookie(w http.ResponseWriter) {
+	h.session[randStringBytes(20)] = time.Now().Unix()
+}
+
+const letterBytes = "1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+func randStringBytes(n int) string {
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+	}
+	return string(b)
 }

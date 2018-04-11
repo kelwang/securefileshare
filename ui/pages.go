@@ -64,7 +64,7 @@ const DownloadPage = header + `
 		</tbody>    
 		<tfoot>
 			<tr>
-				<th colspan="2"><a class="ui red button" href="/destroy/">Destroy The Server</a></th>
+				<th colspan="2"><a class="ui red button" href="/destroy/">destroy</a></th>
 			</tr>
 		</tfoot>
 	</table>
