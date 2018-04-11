@@ -4,29 +4,29 @@ import (
 	"flag"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/kelwang/securefileshare/handler"
 )
 
 func main() {
 	rootPathFlag := flag.String("path", "", "root path will the folder where your docs located to download")
-	secretFlag := flag.String("secret", "", "secret string used for encryption")
 	passFlag := flag.String("code", "", "passcode for your client to gain access")
-
+	portFlag := flag.Int("port", 0, "if empty, the default port will be 8080")
 	flag.Parse()
 	rootPath := *rootPathFlag
-	secret := *secretFlag
-
-	if secret == "" {
-		log.Fatal("secret can't be empty")
-	}
 
 	passCode := *passFlag
 	if passCode == "" {
 		log.Fatal("pass code can't be empty")
 	}
-	println("secure file share server is started")
+	port := "8080"
+	if pt := *portFlag; pt > 0 {
+		port = strconv.Itoa(pt)
+	}
 
-	http.Handle("/", handler.New(rootPath, secret, passCode))
-	http.ListenAndServe(":8080", nil)
+	println("secure file share server is started on port " + port)
+
+	http.Handle("/", handler.New(rootPath, passCode))
+	http.ListenAndServe(":"+port, nil)
 }

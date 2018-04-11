@@ -19,10 +19,9 @@ import (
 const maxRetry = 3
 
 // New http.Handler
-func New(rootPath, secret, passCode string) http.Handler {
+func New(rootPath, passCode string) http.Handler {
 	return &handler{
 		rootPath: rootPath,
-		secret:   []byte(secret),
 		passCode: passCode,
 		tried:    0,
 		session:  make(map[string]int64),
@@ -31,7 +30,6 @@ func New(rootPath, secret, passCode string) http.Handler {
 
 type handler struct {
 	rootPath string
-	secret   []byte
 	passCode string
 	tried    int
 	session  map[string]int64
@@ -81,7 +79,13 @@ func list(h *handler, w http.ResponseWriter, r *http.Request) (err error) {
 	if err != nil {
 		return err
 	}
-	return tmpl.Execute(w, fs)
+	return tmpl.Execute(w, struct {
+		FS      []string
+		Session string
+	}{
+		FS:      fs,
+		Session: r.URL.Query().Get("session"),
+	})
 }
 
 func download(h *handler, w http.ResponseWriter, r *http.Request) (err error) {
@@ -95,8 +99,9 @@ func download(h *handler, w http.ResponseWriter, r *http.Request) (err error) {
 			*er = errors.New(string(debug.Stack()))
 		}
 	}(&err)
+	println(p)
 	w.Header().Set("Content-Type", "application/force-download")
-	http.ServeFile(w, r, p)
+	http.ServeFile(w, r, h.rootPath+"/"+p)
 	return
 
 }
@@ -120,6 +125,7 @@ func (h *handler) authRequest(w http.ResponseWriter, r *http.Request) bool {
 	}
 	if code == h.passCode {
 		//set auth cookie
+		h.setAuthCookie(w, r)
 		return true
 	}
 	if h.tried+1 == maxRetry {
@@ -130,6 +136,13 @@ func (h *handler) authRequest(w http.ResponseWriter, r *http.Request) bool {
 }
 
 func (h *handler) verifyRequest(w http.ResponseWriter, r *http.Request) bool {
+	if session := r.URL.Query().Get("session"); session != "" {
+		if exp, ok := h.session[session]; ok {
+			if exp >= time.Now().Unix() {
+				return true
+			}
+		}
+	}
 	return h.authRequest(w, r)
 }
 
@@ -147,8 +160,10 @@ func getFiles(dir string) (files []string, err error) {
 	return
 }
 
-func (h *handler) setAuthCookie(w http.ResponseWriter) {
-	h.session[randStringBytes(20)] = time.Now().Unix()
+func (h *handler) setAuthCookie(w http.ResponseWriter, r *http.Request) {
+	str := randStringBytes(20)
+	h.session[str] = time.Now().Unix() + 900
+	http.Redirect(w, r, "/?session="+str, http.StatusFound)
 }
 
 const letterBytes = "1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"

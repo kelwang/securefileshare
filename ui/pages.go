@@ -55,16 +55,16 @@ const DownloadPage = header + `
 			</tr>
 		</thead>
 		<tbody>
-			{{range .}}
+			{{range .FS}}
 		    <tr>
 			    <td>{{.}}</td>
-			    <td><a href="/download/{{.}}">download</a></td>
+			    <td><a href="/download/{{.}}?session={{$.Session}}">download</a></td>
 		    </tr>
 		    {{end}}
 		</tbody>    
 		<tfoot>
 			<tr>
-				<th colspan="2"><a class="ui red button" href="/destroy/">destroy</a></th>
+				<th colspan="2"><a class="ui red button" href="/destroy/?session={{$.Session}}">destroy</a></th>
 			</tr>
 		</tfoot>
 	</table>
