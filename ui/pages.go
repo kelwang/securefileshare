@@ -26,7 +26,8 @@ const PasswordPage = header + `
   <div class="header">
     Attention!
   </div>
-  If you failed to enter the passcode 3 times, the server will start self-destruction 
+  If you failed to enter the passcode 3 times, the server will start self-destruction <br>
+  You have {{.}} chances left.
 </div>
 <form class="ui form" method="post">
 	<div class="field">
@@ -39,7 +40,33 @@ const PasswordPage = header + `
 
 // DownloadPage shows a list of items
 const DownloadPage = header + `
+<div class="ui container">
+<div class="ui info message">
+  <div class="header">
+    Attention!
+  </div>
+  Please click destroy, after download all the files
+</div>
 	<table>
-		<thead></thead>
+		<thead>
+			<tr>
+				<th>File</th>
+				<th>Action</th>
+			</tr>
+		</thead>
+		<tbody>
+			{{range .}}
+		    <tr>
+			    <td>{{.}}</td>
+			    <td><a href="/download/{{.}}">download</a></td>
+		    </tr>
+		    {{end}}
+		</tbody>    
+		<tfoot>
+			<tr>
+				<th colspan="2"><a class="ui red button" href="/destroy/">Destroy The Server</a></th>
+			</tr>
+		</tfoot>
 	</table>
+</div>
 ` + footer

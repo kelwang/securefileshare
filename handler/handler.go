@@ -4,8 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"runtime/debug"
 	"strings"
 
@@ -48,6 +50,7 @@ run:
 	err := action(h, w, r)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		log.Println(err)
 		fmt.Fprint(w, "Some error happened")
 	}
 }
@@ -58,20 +61,27 @@ var route = map[string]func(h *handler, w http.ResponseWriter, r *http.Request) 
 }
 
 func list(h *handler, w http.ResponseWriter, r *http.Request) (err error) {
-	if !h.verifyRequest(r) {
+	if !h.verifyRequest(w, r) {
 		tmpl, err := template.New("password").Parse(ui.PasswordPage)
 		if err != nil {
 			log.Fatal("bad template")
 		}
-		err = tmpl.Execute(w, nil)
+		err = tmpl.Execute(w, maxRetry-h.tried)
 		return err
 	}
-
-	return nil
+	tmpl, err := template.New("download").Parse(ui.DownloadPage)
+	if err != nil {
+		log.Fatal("bad template")
+	}
+	fs, err := getFiles(h.rootPath)
+	if err != nil {
+		return err
+	}
+	return tmpl.Execute(w, fs)
 }
 
 func download(h *handler, w http.ResponseWriter, r *http.Request) (err error) {
-	if !h.verifyRequest(r) {
+	if !h.verifyRequest(w, r) {
 		err = errors.New("unauthorized request")
 		return
 	}
@@ -88,7 +98,7 @@ func download(h *handler, w http.ResponseWriter, r *http.Request) (err error) {
 }
 
 func destroy(h *handler, w http.ResponseWriter, r *http.Request) (err error) {
-	if h.verifyRequest(r) {
+	if h.verifyRequest(w, r) {
 		log.Fatal("server is distroyed")
 	}
 	err = errors.New("unauthorized request")
@@ -96,7 +106,7 @@ func destroy(h *handler, w http.ResponseWriter, r *http.Request) (err error) {
 
 }
 
-func (h *handler) authRequest(r *http.Request) bool {
+func (h *handler) authRequest(w http.ResponseWriter, r *http.Request) bool {
 	if err := r.ParseForm(); err != nil {
 		return false
 	}
@@ -114,6 +124,20 @@ func (h *handler) authRequest(r *http.Request) bool {
 	return false
 }
 
-func (h *handler) verifyRequest(r *http.Request) bool {
-	return h.authRequest(r)
+func (h *handler) verifyRequest(w http.ResponseWriter, r *http.Request) bool {
+	return h.authRequest(w, r)
+}
+
+func getFiles(dir string) (files []string, err error) {
+	var fs []os.FileInfo
+	fs, err = ioutil.ReadDir(dir)
+	if err != nil {
+		return
+	}
+	for _, v := range fs {
+		if !v.IsDir() && v.Name()[0] != '.' {
+			files = append(files, v.Name())
+		}
+	}
+	return
 }
